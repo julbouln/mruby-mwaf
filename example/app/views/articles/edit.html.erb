@@ -1,0 +1,10 @@
+<html>
+<body>
+<h2>Edit article</h2>
+<form method="post" action="/articles/save<%= @article.id ? "?id=#{@article.id}" : "" %>">
+  Title : <input name="title" type="text" value="<%= @article.title %>"/><br/>
+  Text : <textarea name="body"><%= @article.body %></textarea><br/>
+  <input type="submit" value="Save"/>
+</form>
+</body>
+</html>

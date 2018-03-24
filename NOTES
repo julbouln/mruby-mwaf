@@ -1,0 +1,4 @@
+
+https://github.com/jbreeden/mruby-erb -> https://github.com/fukaoi/mruby-erb
+https://github.com/jbreeden/mruby-sqlite -> https://github.com/asfluido/mruby-sqlite
+cmake -DEXTRA_LIBS="-lsqlite3 -ldl" .
