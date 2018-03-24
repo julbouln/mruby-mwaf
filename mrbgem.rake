@@ -1,6 +1,6 @@
 MRuby::Gem::Specification.new('mruby-mwaf') do |spec|
   spec.author = "Julien Boulnois"
-  spec.version = "0.0.1"
+  spec.version = "0.1.0"
   spec.license = "MIT"
 
   spec.add_dependency "mruby-erb", :github => 'fukaoi/mruby-erb'

@@ -23,3 +23,10 @@ cp ../h2o-2.2.4/mruby/host/bin/mruby bin/
 cp ../h2o-2.2.4/mruby/host/bin/mirb bin/
 ```
 (TODO create a script)
+
+## Dependencies / third party
+https://github.com/fukaoi/mruby-erb
+https://github.com/asfluido/mruby-sqlite
+
+Included
+https://github.com/CicholGricenchos/Mrouter

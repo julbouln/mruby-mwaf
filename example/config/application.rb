@@ -8,10 +8,10 @@ end
 
 class BlogApplication < Mwaf::Application
   def setup_routes
-    get /^\/articles\/show/, {:controller => "articles", :action => "show"}
-    get /^\/articles\/edit/, {:controller => "articles", :action => "edit"}
-    post /^\/articles\/save/, {:controller => "articles", :action => "save"}
-    get /^\/articles\//, {:controller => "articles", :action => "index"}
+    get "/articles/show(/:id)", {:controller => "articles", :action => "show"}
+    get "/articles/edit(/:id)", {:controller => "articles", :action => "edit"}
+    post "/articles/save", {:controller => "articles", :action => "save"}
+    get "/articles", {:controller => "articles", :action => "index"}
   end
 
   def setup_schema
