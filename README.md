@@ -5,28 +5,24 @@ ultra fast h2o and mruby based rails like minimal framework
 aimed to create web app for embedded sbc (raspberry pi)
 
 ## Installation
-get stable h2o release : https://github.com/h2o/h2o/releases
+```
+$ sudo rake install_with_h2o
+```
 
-```
-$ tar xvzf h2o-2.2.4.tar.gz
-$ cd h2o-2.2.4/deps
-$ git clone https://github.com/julbouln/mruby-mwaf
-$ cd ..
-$ cmake -DEXTRA_LIBS="-lsqlite3 -ldl" .
-$ make -j8
-$ sudo make install
-```
+This will download h2o and compile it with Mwarf included, then install everything in /usr/local
+
 ## Create web app
-copy example app into new directory
+You can create a new app with the mwaf command
 ```
-cp ../h2o-2.2.4/mruby/host/bin/mruby bin/
-cp ../h2o-2.2.4/mruby/host/bin/mirb bin/
+$ mwaf new myapp
 ```
-(TODO create a script)
+And then launch it with h2o
+```
+$ cd myapp
+$ h2o -c myapp.conf
+```
 
 ## Dependencies / third party
 https://github.com/fukaoi/mruby-erb
 https://github.com/asfluido/mruby-sqlite
-
-Included
-https://github.com/CicholGricenchos/Mrouter
+https://github.com/CicholGricenchos/Mrouter (included)

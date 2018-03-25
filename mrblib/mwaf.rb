@@ -8,9 +8,7 @@ class SQLite3::SQLite::Sqlite3Stmt
   SQLite3::SQLite::Sqlite3Stmt
 end
 
-
 module Mwaf
-
   def self.load_dirs
     if File.exists?("app/models/")
       Dir.entries("app/models/").each do |model|
@@ -85,7 +83,7 @@ module Mwaf
               end
 
               if parentheses == 0
-                process_node node, path[current_index+1..-1], params
+                process_node node, path[current_index + 1..-1], params
                 return
               end
               current_index += 1
@@ -104,14 +102,14 @@ module Mwaf
               end
             end
 
-            if identical = node.children.find{|child| child.dynamic? && child.value == name}
+            if identical = node.children.find {|child| child.dynamic? && child.value == name}
               process_node identical, path[current_index..-1], params
             else
               new_node = node.add_child DynamicNode.new(name)
               process_node new_node, path[current_index..-1], params
             end
           else
-            if identical = node.children.find{|child| child.static? && child.value == head}
+            if identical = node.children.find {|child| child.static? && child.value == head}
               process_node identical, path[1..-1], params
             else
               new_node = node.add_child StaticNode.new(head)
@@ -134,7 +132,7 @@ module Mwaf
           node.params = child.params
           compress_node node
         else
-          node.children.each{|child| compress_node child}
+          node.children.each {|child| compress_node child}
         end
       end
 
@@ -209,12 +207,16 @@ module Mwaf
         @children.empty?
       end
 
-      def static?; end
-      def dynamic?; end
+      def static?;
+      end
+
+      def dynamic?;
+      end
 
       def == another
         self.class == another.class && self.children == another.children && self.params == another.params
       end
+
       alias :eql? :==
 
       def add_child child
@@ -374,181 +376,184 @@ module Mwaf
     end
   end
 
-  class Model
-    attr_accessor :attributes
+  # mini AR
+  module ActiveRecord
+    class Base
+      attr_accessor :attributes
 
-    def self.database
-      Mwaf::Configuration.database
-    end
-
-    def self.table_name
-      self.to_s.downcase
-    end
-
-    def self.connection &block
-      SQLite3::Database.new(self.database) do |db|
-        block.call(db)
+      def self.database
+        Mwaf::Configuration.database
       end
-    end
 
-    def initialize(attributes = {})
-      @attributes = attributes
-    end
+      def self.table_name
+        self.to_s.downcase
+      end
 
-    def save
-      if self.id
-        req = []
-        attributes.each do |k, v|
-          req << "#{k}='#{v}'"
+      def self.connection &block
+        SQLite3::Database.new(self.database) do |db|
+          block.call(db)
         end
-        sql = "UPDATE #{self.class.table_name} SET #{req.join(",")} WHERE id='#{self.id}'"
-        puts "SQL: #{sql}"
-        self.class.connection do |db|
-          db.execute sql
+      end
+
+      def initialize(attributes = {})
+        @attributes = attributes
+      end
+
+      def save
+        if self.id
+          req = []
+          attributes.each do |k, v|
+            req << "#{k}='#{v}'"
+          end
+          sql = "UPDATE #{self.class.table_name} SET #{req.join(",")} WHERE id='#{self.id}'"
+          puts "SQL: #{sql}"
+          self.class.connection do |db|
+            db.execute sql
+          end
+          true
+        else
+          created = self.class.create(self.attributes)
+          if created
+            self.id = created.id
+            true
+          else
+            false
+          end
         end
-        true
-      else
-        created = self.class.create(self.attributes)
-        if created
-          self.id = created.id
+      end
+
+      def destroy
+        if self.id
+          sql = "DELETE FROM #{self.class.table_name} where id='#{self.id}'"
+          puts "SQL: #{sql}"
+          self.class.connection do |db|
+            db.execute sql
+          end
           true
         else
           false
         end
       end
-    end
 
-    def destroy
-      if self.id
-        sql = "DELETE FROM #{self.class.table_name} where id='#{self.id}'"
-        puts "SQL: #{sql}"
-        self.class.connection do |db|
-          db.execute sql
-        end
-        true
-      else
-        false
+      def self.all
+        Relation.new(self)
       end
-    end
 
-    def self.all
-      Relation.new(self)
-    end
+      def self.first
+        self.all.first
+      end
 
-    def self.first
-      self.all.first
-    end
+      def self.find(id)
+        self.where(:id => id).first
+      end
 
-    def self.find(id)
-      self.where(:id => id).first
-    end
+      def self.create(args)
+        Relation.new(self).where(args).create
+      end
 
-    def self.create(args)
-      Relation.new(self).where(args).create
-    end
+      def self.where(args)
+        Relation.new(self).where(args)
+      end
 
-    def self.where(args)
-      Relation.new(self).where(args)
-    end
-
-    def method_missing(m, *args, &block)
-      if m.to_s =~ /=$/
-        attr_name = m.to_s.gsub(/=$/, "")
-        self.attributes[attr_name] = args.first
-      else
-        if self.attributes[m.to_s]
-          self.attributes[m.to_s]
+      def method_missing(m, *args, &block)
+        if m.to_s =~ /=$/
+          attr_name = m.to_s.gsub(/=$/, "")
+          self.attributes[attr_name] = args.first
         else
-          nil
-        end
-      end
-    end
-  end
-
-  class Relation
-    attr_accessor :where, :rows
-
-    def initialize(klass)
-      @klass = klass
-      @where = {}
-      @rows = []
-      @insert = false
-    end
-
-    def to_a
-      self.exec.rows
-    end
-
-    def each &block
-      self.to_a.each do |v|
-        block.call v
-      end
-    end
-
-    def first
-      self.exec.rows.first
-    end
-
-    def create
-      @insert = true
-      self.exec.rows.first
-    end
-
-    def first_or_create
-      first_found = self.first
-      if first_found
-        first_found
-      else
-        self.create
-      end
-    end
-
-    def where(args)
-      if args.class == Array
-        args.each do |arg|
-          @where.merge!(arg)
-        end
-      else
-        @where.merge!(args)
-      end
-      self
-    end
-
-    def exec
-      sql = ""
-      if @insert
-        sql = "INSERT INTO #{@klass.table_name} (#{@where.keys.join(",")})"
-        sql += " VALUES (#{@where.values.map {|v| "'#{v}'"}.join(',')})" unless @where.empty?
-      else
-        sql = "SELECT * FROM #{@klass.table_name}"
-        req = []
-        @where.each do |argk, argv|
-          req << "#{argk}='#{argv}'"
-        end
-        sql += " WHERE #{req.join(' AND ')}" unless @where.empty?
-      end
-      puts "SQL: #{sql}"
-
-      @klass.connection do |db|
-        pst = db.prepare(sql)
-
-        pst.execute.each do |fields|
-          attrs = {}
-          fields.each_with_index do |field, idx|
-            attrs[pst.columns[idx]] = field
+          if self.attributes[m.to_s]
+            self.attributes[m.to_s]
+          else
+            nil
           end
-
-          @rows << @klass.new(attrs)
-        end
-        pst.close
-        if @insert
-          id = db.execute("select last_insert_rowid();")
-          @rows << @klass.new(@where.merge("id" => id.flatten.first))
         end
       end
-      self
+    end
+
+    class Relation
+      attr_accessor :where, :rows
+
+      def initialize(klass)
+        @klass = klass
+        @where = {}
+        @order = []
+        @rows = []
+        @insert = false
+      end
+
+      def to_a
+        self.exec.rows
+      end
+
+      def each &block
+        self.to_a.each do |v|
+          block.call v
+        end
+      end
+
+      def first
+        self.exec.rows.first
+      end
+
+      def create
+        @insert = true
+        self.exec.rows.first
+      end
+
+      def first_or_create
+        first_found = self.first
+        if first_found
+          first_found
+        else
+          self.create
+        end
+      end
+
+      def where(args)
+        if args.class == Array
+          args.each do |arg|
+            @where.merge!(arg)
+          end
+        else
+          @where.merge!(args)
+        end
+        self
+      end
+
+      def exec
+        sql = ""
+        if @insert
+          sql = "INSERT INTO #{@klass.table_name} (#{@where.keys.join(",")})"
+          sql += " VALUES (#{@where.values.map {|v| "'#{v}'"}.join(',')})" unless @where.empty?
+        else
+          sql = "SELECT * FROM #{@klass.table_name}"
+          req = []
+          @where.each do |argk, argv|
+            req << "#{argk}='#{argv}'"
+          end
+          sql += " WHERE #{req.join(' AND ')}" unless @where.empty?
+        end
+        puts "SQL: #{sql}"
+
+        @klass.connection do |db|
+          pst = db.prepare(sql)
+
+          pst.execute.each do |fields|
+            attrs = {}
+            fields.each_with_index do |field, idx|
+              attrs[pst.columns[idx]] = field
+            end
+
+            @rows << @klass.new(attrs)
+          end
+          pst.close
+          if @insert
+            id = db.execute("select last_insert_rowid();")
+            @rows << @klass.new(@where.merge("id" => id.flatten.first))
+          end
+        end
+        self
+      end
     end
   end
-
 
 end

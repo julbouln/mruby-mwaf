@@ -1,0 +1,66 @@
+#!/usr/bin/ruby
+require 'fileutils'
+command = ARGV[0]
+app_path = ARGV[1]
+install_path = "/usr/local"
+
+if command and command == "new" and app_path
+  app_const = app_path.capitalize
+  FileUtils.mkdir app_path
+  Dir.chdir(app_path) do
+    FileUtils.mkdir "bin"
+    FileUtils.mkdir_p "app/models"
+    FileUtils.mkdir_p "app/controllers"
+    FileUtils.mkdir_p "app/views"
+    FileUtils.mkdir "lib"
+    FileUtils.mkdir "config"
+
+    FileUtils.cp "#{install_path}/share/h2o/mruby/bin/mruby", "bin/"
+    FileUtils.cp "#{install_path}/share/h2o/mruby/bin/mirb", "bin/"
+
+    File.open("#{app_path}.conf","w") do |file|
+      conf = <<-CONF
+listen: 8080
+hosts:
+  "127.0.0.1:8080":
+    paths:
+      /:
+        mruby.handler-file: boot.rb
+    access-log: /dev/stdout
+CONF
+      file.write conf
+    end
+
+    File.open("config/application.rb","w") do |file|
+      app = <<-APP
+Mwaf.load_dirs
+
+class Mwaf::Configuration
+  def self.database
+    "#{app_path}.db"
+  end
+end
+
+class #{app_const}Application < Mwaf::Application
+  def setup_routes
+  end
+
+  def setup_schema
+  end
+end
+APP
+      file.write app
+    end
+
+    File.open("boot.rb","w") do |file|
+      boot = <<-BOOT
+require 'config/application'
+#{app_const}Application.new
+BOOT
+      file.write boot
+    end
+  end
+else
+  puts "Usage:"
+  puts "  mwarf new APP_PATH"
+end
