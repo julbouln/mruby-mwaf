@@ -62,5 +62,5 @@ BOOT
   end
 else
   puts "Usage:"
-  puts "  mwarf new APP_PATH"
+  puts "  mwaf new APP_PATH"
 end
